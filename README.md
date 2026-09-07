@@ -45,6 +45,10 @@ Heath check.
 - `GET`, `HEAD`, ...: returns a response with the status code defined by the `POST`
 - `POST`: changes the status code of the `GET` (`HEAD`, ...) response.
 
+#### `/fetch?url=u`
+
+Fetches `u` and streams the response back to the caller. Useful for checking what a downstream service sees when whoami calls out to it.
+
 ### Flags
 
 | Flag      | Env var              | Description                             |

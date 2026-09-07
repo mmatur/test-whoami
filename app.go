@@ -83,6 +83,7 @@ func main() {
 	mux.Handle("/bench", handle(benchHandler, verbose))
 	mux.Handle("/api", handle(apiHandler, verbose))
 	mux.Handle("/health", handle(healthHandler, verbose))
+	mux.Handle("/fetch", handle(fetchHandler, verbose))
 	mux.Handle("/openapi.yaml", handle(openAPIHandler, verbose))
 	mux.Handle("/", handle(whoamiHandler, verbose))
 
