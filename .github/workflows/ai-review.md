@@ -92,7 +92,7 @@ safe-outputs:
                     echo "${TRUFFLEHOG_SHA256}  /tmp/trufflehog.tar.gz" | sha256sum -c -
                     sudo tar -xzf /tmp/trufflehog.tar.gz --no-same-owner -C /usr/local/bin trufflehog
             -   name: TruffleHog on agent outputs
-                run: trufflehog filesystem /tmp/gh-aw --only-verified --fail
+                run: trufflehog filesystem /tmp/gh-aw --only-verified --no-update --fail
 ---
 
 # Pull Request Reviewer
