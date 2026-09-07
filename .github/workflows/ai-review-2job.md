@@ -82,6 +82,7 @@ engine:
 network:
     allowed:
         - defaults
+        - claude
 
 tools:
     # Read-only local exploration of the extracted source tree. Explicit

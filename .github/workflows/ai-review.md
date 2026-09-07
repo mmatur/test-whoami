@@ -51,6 +51,7 @@ engine:
 network:
     allowed:
         - defaults
+        - claude
 
 # Restrict the GitHub MCP server to read-only tools (see reference/github-tools).
 tools:
