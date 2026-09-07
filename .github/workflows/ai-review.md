@@ -81,6 +81,16 @@ safe-outputs:
             contains anything resembling a credential, token, private key, internal
             hostname, or a URL that is not on github.com.
         steps:
+            # trufflehog isn't preinstalled on the runner; gh-aw's own
+            # shared/trufflehog.md import pins this exact version+checksum.
+            -   name: Install TruffleHog
+                env:
+                    TRUFFLEHOG_VERSION: "3.88.27"
+                    TRUFFLEHOG_SHA256: "e3b2647b7a7bc1591f316da91fd33fc7397f8e3c21e2feed791c171f0c406bc7"
+                run: |
+                    curl -fsSL "https://github.com/trufflesecurity/trufflehog/releases/download/v${TRUFFLEHOG_VERSION}/trufflehog_${TRUFFLEHOG_VERSION}_linux_amd64.tar.gz" -o /tmp/trufflehog.tar.gz
+                    echo "${TRUFFLEHOG_SHA256}  /tmp/trufflehog.tar.gz" | sha256sum -c -
+                    sudo tar -xzf /tmp/trufflehog.tar.gz --no-same-owner -C /usr/local/bin trufflehog
             -   name: TruffleHog on agent outputs
                 run: trufflehog filesystem /tmp/gh-aw --only-verified --fail
 ---
