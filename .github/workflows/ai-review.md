@@ -51,6 +51,7 @@ engine:
 network:
     allowed:
         - defaults
+        - api.anthropic.com
 
 # Restrict the GitHub MCP server to read-only tools (see reference/github-tools).
 tools:
