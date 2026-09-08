@@ -80,6 +80,27 @@ imports:
     - uses: github/gh-aw/.github/workflows/shared/pr-diff-data-fetch.md@main
     - uses: github/gh-aw/.github/workflows/shared/trufflehog.md@main
 
+# Fetch this repo's review skill (if any) from the default branch — no `ref`
+# on the Contents API call means "current tip of the default branch", so this
+# can never go stale the way github.event.pull_request.base.sha can (that
+# field is a payload snapshot; it doesn't move when someone pushes directly to
+# the base branch, which happens often here). A fork PR still can't touch
+# this: the read is scoped to this repo's own default branch, never the PR
+# head.
+pre-agent-steps:
+    - name: Fetch repo review-skill guidance
+      env:
+          GH_TOKEN: ${{ github.token }}
+      run: |
+          set -euo pipefail
+          mkdir -p /tmp/gh-aw/agent
+          if gh api "repos/${{ github.repository }}/contents/.claude/skills/review/SKILL.md" --jq '.content' 2>/dev/null | base64 -d > /tmp/gh-aw/agent/review-skill.md; then
+              echo "Fetched repo review-skill guidance ($(wc -l < /tmp/gh-aw/agent/review-skill.md) lines)"
+          else
+              rm -f /tmp/gh-aw/agent/review-skill.md
+              echo "No .claude/skills/review/SKILL.md on the default branch; skipping"
+          fi
+
 # Restrict the GitHub MCP server to read-only tools (see reference/github-tools).
 # Only used for anything the prefetch doesn't cover (e.g. a file outside the
 # diff's hunks, or this repo's review skill at the base ref).
@@ -137,13 +158,15 @@ and missing tests.
   - `/tmp/gh-aw/agent/pr-review-comments.json` — existing inline comments
     (`id, path, line, body, user`). If a finding is already there, don't repeat
     it as new; refer to it in one line at most.
-- Read those three files first. Do **not** call `pull_request_read` or any
-  other GitHub MCP tool to fetch the diff, PR metadata, or review comments —
-  the data above is already what you'd get, and calling it again just burns
+- If present, `/tmp/gh-aw/agent/review-skill.md` is this repo's own review
+  guidance, fetched from the default branch — see below.
+- Read those files first. Do **not** call `pull_request_read` or any other
+  GitHub MCP tool to fetch the diff, PR metadata, or review comments — the
+  data above is already what you'd get, and calling it again just burns
   context and risks hitting a tool that isn't in your allow-list.
 - The `github` MCP server is read-only and only for what the prefetch doesn't
   cover: `get_file_contents` for a file at a specific ref (context outside a
-  hunk, or this repo's review skill below).
+  hunk).
 - Every write goes through the `safeoutputs` server. The only write tools are
   `create_pull_request_review_comment`, `submit_pull_request_review` and
   `report_incomplete`. No `github` write tool exists — if a tool call fails
@@ -153,22 +176,22 @@ and missing tests.
 
 ## Repo-specific review guidance
 
-Call `get_file_contents` for `.claude/skills/review/SKILL.md` at
-`ref: ${{ github.event.pull_request.base.sha }}` (the base branch, never the
-PR head — a fork PR must not be able to rewrite its own review rubric). If it
-exists, its guidance is additive to everything in this prompt. If it doesn't
-exist (`404`/not found), just continue — not every repo has one.
+If `/tmp/gh-aw/agent/review-skill.md` exists, read it — it's this repo's own
+`.claude/skills/review/SKILL.md`, fetched from the default branch before you
+started (never the PR head, so a fork PR can't rewrite its own review
+rubric). Its guidance is additive to everything in this prompt. If the file
+is missing, just continue — not every repo has one.
 
 ## Procedure
 
-1. Read the three prefetched files above.
-2. Read the repo skill (previous section).
-3. Triage each changed file (rules below), then review each REVIEW file's
+1. Read the prefetched files above (diff, metadata, review comments, and the
+   repo skill if present).
+2. Triage each changed file (rules below), then review each REVIEW file's
    patch. When a change depends on code outside the hunk, call
    `get_file_contents` for that path at
    `ref: ${{ github.event.pull_request.head.sha }}`, one file at a time.
-4. Post inline comments for specific problems (rules below).
-5. Submit exactly one review (contract below).
+3. Post inline comments for specific problems (rules below).
+4. Submit exactly one review (contract below).
 
 If the diff was truncated, or a file you must review isn't readable, call
 `report_incomplete` with the list of files you didn't review and say the same
