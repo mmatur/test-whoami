@@ -156,8 +156,12 @@ and missing tests.
   - `/tmp/gh-aw/agent/pr-meta.json` — `number, title, body, headRefName,
     additions, deletions, changedFiles, files`.
   - `/tmp/gh-aw/agent/pr-review-comments.json` — existing inline comments
-    (`id, path, line, body, user`). If a finding is already there, don't repeat
-    it as new; refer to it in one line at most.
+    (`id, path, line, body, user`). Use this only to avoid posting a second
+    comment that says the exact same thing at the exact same `path`/`line`.
+    It is never a reason to fall back to a body-only summary instead of
+    inline comments — every Blocking/Should-fix finding still gets its own
+    `create_pull_request_review_comment` (rules below), whether or not
+    something related was said before.
 - If present, `/tmp/gh-aw/agent/review-skill.md` is this repo's own review
   guidance, fetched from the default branch — see below.
 - Read those files first. Do **not** call `pull_request_read` or any other
@@ -214,14 +218,24 @@ When a SKIP file is the only change to a subsystem, say so in the review body.
 
 ## Inline comment rules
 
-- Use `create_pull_request_review_comment` **only** for a Blocking or
-  Should-fix severity problem on a changed line — never for a nit, and never
-  style-only feedback. The budget is small (6): spend it on the most severe
-  findings, not the most numerous.
+- **Every** Blocking or Should-fix finding gets its own
+  `create_pull_request_review_comment` — that is the primary output of this
+  review, not the review body. Never substitute a body-only summary for the
+  inline comments; the body (contract below) is an index into them, not a
+  replacement. Never use it for a nit or style-only feedback.  The budget is
+  small (6): spend it on the most severe findings, not the most numerous.
 - Anchor the comment to a line on the new side of a hunk in that file's patch.
   Compute the line from the `@@` header; pass `line` as an integer (and
   `start_line` for a span). If you can't place it inside a hunk, put the
   finding in the review body as `path:line` instead of posting inline.
+- When the fix is a concrete, safe, small code change (add a `defer .Close()`,
+  add a timeout, a nil check, a missing error check, etc.), include it as a
+  GitHub suggested change: a ` ```suggestion ` fenced block in the comment
+  body containing the replacement for the exact line(s) the comment is
+  anchored to (match `start_line`/`line` precisely — a suggestion block
+  replaces those lines verbatim). Skip the suggestion only when the real fix
+  needs a design decision (the SSRF allowlist policy, say) rather than a
+  mechanical patch — say what's needed in prose instead.
 - At most one comment per distinct problem.
 
 ## Review contract
