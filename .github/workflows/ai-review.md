@@ -8,7 +8,9 @@
 # to .github/workflows/shared/base.ai-review.md. Never edit those copies. To
 # roll out a change to either file, run from the target repository:
 #   gh aw add traefik/ai/test-whoami.ai-review -n ai-review --force
-#   gh aw compile --strict --actionlint --zizmor --poutine
+#   gh aw compile --strict --actionlint
+# (zizmor and poutine run in traefik/ai CI on the same lock content; in a
+# target repository, without the zizmor configuration kept there, they fail.)
 # Not `gh aw update`: it refreshes this file but leaves shared/ as it was.
 name: "AI code review"
 description: "Reviews a pull request when a maintainer applies the ai/review label. Read-only agent; writes only through safe outputs."
